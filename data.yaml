@@ -1,0 +1,6 @@
+train: W:\workspace\computer vision\fire_and_smoke_detection\data\train
+val: W:\workspace\computer vision\fire_and_smoke_detection\data\valid
+test: W:\workspace\computer vision\fire_and_smoke_detection\data\test
+
+nc: 2
+names: ['fire', 'smoke']
