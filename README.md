@@ -129,6 +129,15 @@ project/
 
 ---
 
+## fire and smoke dataset
+
+```text
+https://universe.roboflow.com/smoke-u7rvn/fire-and-smoke-a97rx
+
+Provided by a Roboflow user
+License: MIT
+```
+
 ## Installation
 
 Clone the repository:
