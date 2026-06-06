@@ -59,8 +59,15 @@ spread_rate = spread_rate / total_frame_area
 Approximates how close the fire is to becoming dangerous.
 
 [
-proximity = min(1.0, flame_ratio * 2)
+proximity_score = 1 if flame_ratio > 0.3 else 0.5
 ]
+
+#### 5. Avarage Confidance
+
+Measures average confidence score of all fire and smoke detections in a frame
+
+avg_confidence = sum(confidences) / len(confidences)
+
 
 ---
 
@@ -70,10 +77,11 @@ The threat score is calculated using a weighted combination of signals.
 
 [
 ThreatScore =
-40(FlameRatio)
-+30(SmokeDensity)
-+20(SpreadRate)
-+10(Proximity)
+40(AverageConfidance)
++25(FlameRatio)
++20(SmokeDensity)
++10(SpreadRate)
++5(ProximityScore)
 ]
 
 Maximum score:
@@ -88,10 +96,10 @@ threat_score = min(100, threat_score)
 
 | Threat Score | Risk Level |
 | ------------ | ---------- |
-| < 5          | LOW        |
-| 5 - 15       | MEDIUM     |
-| 15 - 25      | HIGH       |
-| > 25         | CRITICAL   |
+| < 15         | LOW        |
+| 5 - 25       | MEDIUM     |
+| 25 - 35      | HIGH       |
+| > 35         | CRITICAL   |
 
 ---
 
@@ -208,10 +216,10 @@ outputs/detect/5_log.csv
 
 Example:
 
-| frame | flame_ratio | smoke_density | spread_rate | proximity | threat_score | risk |
-| ----- | ----------- | ------------- | ----------- | --------- | ------------ | ---- |
-| 1     | 0.021       | 0.010         | 0.003       | 0.042     | 1.56         | LOW  |
-| 2     | 0.041       | 0.020         | 0.008       | 0.082     | 3.52         | LOW  |
+| frame | avg_confidence | flame_ratio | smoke_density | spread_rate | proximity | threat_score | risk   |
+| ----- | -------------- | ----------- | ------------- | ----------- | --------- | ------------ | ------ |
+| 17    | 0.78           | 0.027       | 0.0           | 0.0         | 0.5       | 13.47        | High   |
+| 18    | 0.52           | 0.026       | 0.0           | 0.0         | 0.5       | 24.33        | MEDIUM |
 
 ---
 

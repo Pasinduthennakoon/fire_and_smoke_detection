@@ -4,21 +4,16 @@ import pandas as pd
 from ultralytics import YOLO
 import os
 
-# Load trained model
 model = YOLO("./runs/detect/fire_smoke_model/weights/best.pt")
 
-# Input video path
-video_path = "./data/5.mp4"
+video_path = "./data/1.mp4"
 
-# Extract filename without extension
 video_name = os.path.splitext(os.path.basename(video_path))[0]
 
-# Video input
 cap = cv2.VideoCapture(video_path)
 
 os.makedirs("outputs/detect", exist_ok=True)
 
-# Output video
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = cv2.VideoWriter(
     f'outputs/detect/{video_name}_output.mp4',
@@ -27,7 +22,6 @@ out = cv2.VideoWriter(
     (640, 640)
 )
 
-# CSV log
 logs = []
 
 prev_fire_area = 0
@@ -48,6 +42,7 @@ while True:
 
     fire_area = 0
     smoke_area = 0
+    confidences = []
 
     for r in results:
 
@@ -57,6 +52,8 @@ while True:
 
             cls = int(box.cls[0])
             conf = float(box.conf[0])
+            
+            confidences.append(conf)
 
             x1, y1, x2, y2 = map(int, box.xyxy[0])
 
@@ -64,13 +61,11 @@ while True:
 
             label = ""
 
-            # FIRE
             if cls == 0:
                 fire_area += area
                 label = f"Fire {conf:.2f}"
                 color = (0, 0, 255)
 
-            # SMOKE
             elif cls == 1:
                 smoke_area += area
                 label = f"Smoke {conf:.2f}"
@@ -90,9 +85,6 @@ while True:
                 2
             )
 
-    # -----------------------------
-    # SIGNALS
-    # -----------------------------
 
     flame_ratio = fire_area / total_frame_area
 
@@ -101,43 +93,37 @@ while True:
     spread_rate = max(0, fire_area - prev_fire_area)
     spread_rate = spread_rate / total_frame_area
 
-    # simplified proximity
-    proximity = min(1.0, flame_ratio * 2)
+    proximity_score = 1 if flame_ratio > 0.3 else 0.5
 
     prev_fire_area = fire_area
 
-    # -----------------------------
-    # THREAT SCORE
-    # -----------------------------
+
+    avg_confidence = (
+    sum(confidences) / len(confidences)
+    if len(confidences) > 0
+    else 0
+    )
 
     threat_score = (
-        40 * flame_ratio +
-        30 * smoke_density +
-        20 * spread_rate +
-        10 * proximity
+        40 * avg_confidence +
+        25 * flame_ratio +
+        20 * smoke_density +
+        10 * spread_rate +
+        5  * proximity_score
     )
 
     threat_score = min(100, threat_score)
 
-    # -----------------------------
-    # RISK LEVEL
-    # -----------------------------
 
-    if threat_score < 5:
+    if threat_score < 15:
         risk = "LOW"
-
-    elif threat_score < 15:
-        risk = "MEDIUM"
-
     elif threat_score < 25:
+        risk = "MEDIUM"
+    elif threat_score < 35:
         risk = "HIGH"
-
     else:
         risk = "CRITICAL"
 
-    # -----------------------------
-    # DISPLAY
-    # -----------------------------
 
     cv2.putText(
         frame,
@@ -159,13 +145,13 @@ while True:
         2
     )
 
-    # Save logs
     logs.append({
         "frame": frame_id,
+        "avg_confidence": avg_confidence,
         "flame_ratio": flame_ratio,
         "smoke_density": smoke_density,
         "spread_rate": spread_rate,
-        "proximity": proximity,
+        "proximity": proximity_score,
         "threat_score": threat_score,
         "risk": risk
     })
@@ -183,7 +169,6 @@ cap.release()
 out.release()
 cv2.destroyAllWindows()
 
-# Save CSV
 pd.DataFrame(logs).to_csv(
     f"outputs/detect/{video_name}_log.csv",
     index=False
